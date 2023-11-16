@@ -31,14 +31,16 @@ class MimesRule implements Rule
     {
         return collect($value)->every(function ($id) {
             if ($id instanceof UploadedFile) {
-                return in_array($id->guessExtension(), $this->parameters);
+                return in_array($id->guessExtension(), $this->parameters)
+                    && in_array($id->getClientOriginalExtension(), $this->parameters);
             }
 
             if (! $asset = Asset::find($id)) {
                 return false;
             }
 
-            return $asset->guessedExtensionIsOneOf($this->parameters);
+            return $asset->guessedExtensionIsOneOf($this->parameters)
+                && in_array($asset->extension(), $this->parameters);
         });
     }
 

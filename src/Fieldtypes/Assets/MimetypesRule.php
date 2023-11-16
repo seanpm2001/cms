@@ -6,6 +6,7 @@ use Illuminate\Contracts\Validation\Rule;
 use Statamic\Facades\Asset;
 use Statamic\Statamic;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Mime\MimeTypes;
 
 class MimetypesRule implements Rule
 {
@@ -27,13 +28,20 @@ class MimetypesRule implements Rule
     {
         return collect($value)->every(function ($id) {
             if ($id instanceof UploadedFile) {
+                $extension = $id->getClientOriginalExtension();
                 $mimeType = $id->getMimeType();
-            } elseif (! ($mimeType = optional(Asset::find($id))->mimeType())) {
-                return false;
+            } else {
+                if (! $asset = Asset::find($id)) {
+                    return false;
+                }
+                $extension = $asset->extension();
+                $mimeType = $asset->mimeType();
             }
 
-            return in_array($mimeType, $this->parameters) ||
-                in_array(explode('/', $mimeType)[0].'/*', $this->parameters);
+            $validMime = in_array($mimeType, $this->parameters) || in_array(explode('/', $mimeType)[0].'/*', $this->parameters);
+            $validExtension = in_array($extension, MimeTypes::getDefault()->getExtensions($mimeType));
+
+            return $validMime && $validExtension;
         });
     }
 

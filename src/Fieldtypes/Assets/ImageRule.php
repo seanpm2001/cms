@@ -29,14 +29,16 @@ class ImageRule implements Rule
 
         return collect($value)->every(function ($id) use ($extensions) {
             if ($id instanceof UploadedFile) {
-                return in_array($id->guessExtension(), $extensions);
+                return in_array($id->guessExtension(), $extensions)
+                    && in_array($id->getClientOriginalExtension(), $extensions);
             }
 
             if (! $asset = Asset::find($id)) {
                 return false;
             }
 
-            return $asset->guessedExtensionIsOneOf($extensions);
+            return $asset->guessedExtensionIsOneOf($extensions)
+                && in_array($asset->extension(), $extensions);
         });
     }
 
