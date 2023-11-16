@@ -27,22 +27,32 @@ class MimetypesRule implements Rule
     public function passes($attribute, $value)
     {
         return collect($value)->every(function ($id) {
-            if ($id instanceof UploadedFile) {
-                $extension = $id->getClientOriginalExtension();
-                $mimeType = $id->getMimeType();
-            } else {
-                if (! $asset = Asset::find($id)) {
-                    return false;
-                }
-                $extension = $asset->extension();
-                $mimeType = $asset->mimeType();
+            [$extension, $mimeType] = $this->getExtensionAndMimeType($id);
+
+            if (! $extension) {
+                return false;
             }
 
             $validMime = in_array($mimeType, $this->parameters) || in_array(explode('/', $mimeType)[0].'/*', $this->parameters);
+
             $validExtension = in_array($extension, MimeTypes::getDefault()->getExtensions($mimeType));
 
             return $validMime && $validExtension;
         });
+    }
+
+    private function getExtensionAndMimeType($item)
+    {
+
+        if ($item instanceof UploadedFile) {
+            return [$item->getClientOriginalExtension(), $item->getMimeType()];
+        }
+
+        if (! $asset = Asset::find($item)) {
+            return [null, null];
+        }
+
+        return [$asset->extension(), $asset->mimeType()];
     }
 
     /**

@@ -28,18 +28,28 @@ class ImageRule implements Rule
         $extensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
 
         return collect($value)->every(function ($id) use ($extensions) {
-            if ($id instanceof UploadedFile) {
-                return in_array($id->guessExtension(), $extensions)
-                    && in_array($id->getClientOriginalExtension(), $extensions);
-            }
+            [$extension, $guessed] = $this->getExtensions($id);
 
-            if (! $asset = Asset::find($id)) {
+            if (! $extension) {
                 return false;
             }
 
-            return $asset->guessedExtensionIsOneOf($extensions)
-                && in_array($asset->extension(), $extensions);
+            return in_array($extension, $extensions)
+                && in_array($guessed, $extensions);
         });
+    }
+
+    private function getExtensions($item)
+    {
+        if ($item instanceof UploadedFile) {
+            return [$item->getClientOriginalExtension(), $item->guessExtension()];
+        }
+
+        if (! $asset = Asset::find($item)) {
+            return [null, null];
+        }
+
+        return [$asset->extension(), $asset->guessedExtension()];
     }
 
     /**

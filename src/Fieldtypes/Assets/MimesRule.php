@@ -30,18 +30,28 @@ class MimesRule implements Rule
     public function passes($attribute, $value)
     {
         return collect($value)->every(function ($id) {
-            if ($id instanceof UploadedFile) {
-                return in_array($id->guessExtension(), $this->parameters)
-                    && in_array($id->getClientOriginalExtension(), $this->parameters);
-            }
+            [$extension, $guessed] = $this->getExtensions($id);
 
-            if (! $asset = Asset::find($id)) {
+            if (! $extension) {
                 return false;
             }
 
-            return $asset->guessedExtensionIsOneOf($this->parameters)
-                && in_array($asset->extension(), $this->parameters);
+            return in_array($guessed, $this->parameters)
+                && in_array($extension, $this->parameters);
         });
+    }
+
+    private function getExtensions($item)
+    {
+        if ($item instanceof UploadedFile) {
+            return [$item->getClientOriginalExtension(), $item->guessExtension()];
+        }
+
+        if (! $asset = Asset::find($item)) {
+            return [null, null];
+        }
+
+        return [$asset->extension(), $asset->guessedExtension()];
     }
 
     /**
